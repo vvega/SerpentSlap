@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.designethereal.dragonslap.Dragonslap;
+import com.designethereal.resources.ResourceManager;
 
 //Base class for all screens within the game
 
@@ -46,10 +47,7 @@ public abstract class AbstractScreen implements Screen {
 	
 
 	protected Skin getSkin() {
-		if(skin == null) {
-			skin = new Skin(Gdx.files.internal("data/ui/uiskin.json"));
-		}
-		return skin;
+		return ResourceManager.uiSkin;
 	}
 	
 	@Override
@@ -67,8 +65,9 @@ public abstract class AbstractScreen implements Screen {
 	@Override
 	public void render(float delta) {
        
-		stage.act(delta);
-
+		//stage.act(delta);
+		stage.act(Gdx.graphics.getDeltaTime());
+		
         // clear the screen with the given RGB color (black)
         Gdx.gl.glClearColor( 0f, 0f, 0f, 1f );
         Gdx.gl.glClear( GL20.GL_COLOR_BUFFER_BIT );

@@ -46,7 +46,7 @@ public class Dragonslap extends com.badlogic.gdx.Game {
 		super.render();
 
         // output the current FPS
-        fpsLogger.log();
+       // fpsLogger.log();
 	}
 
 	@Override
@@ -57,7 +57,7 @@ public class Dragonslap extends com.badlogic.gdx.Game {
         // show the splash screen when the game is resized for the first time;
         // this approach avoids calling the screen's resize method repeatedly
         if( getScreen() == null ) {
-            setScreen( getSplashScreen() );
+            setScreen( getGameScreen() );
         }
 	}
 

@@ -11,7 +11,6 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
-import com.badlogic.gdx.physics.box2d.CircleShape;
 import com.badlogic.gdx.physics.box2d.EdgeShape;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.QueryCallback;
@@ -20,12 +19,11 @@ import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
 import com.badlogic.gdx.physics.box2d.joints.MouseJoint;
 import com.badlogic.gdx.physics.box2d.joints.MouseJointDef;
 import com.badlogic.gdx.utils.Array;
-import com.designethereal.dragon.BodyPart;
+import com.designethereal.dragon.BodySegment;
 import com.designethereal.dragon.Dragon;
 import com.designethereal.dragon.Head;
 import com.designethereal.dragonslap.Dragonslap;
 import com.designethereal.sprites.BaseSprite;
-import com.designethereal.sprites.TailSprite;
 
 public class GameScreen extends AbstractScreen implements InputProcessor {
 
@@ -47,34 +45,29 @@ public class GameScreen extends AbstractScreen implements InputProcessor {
 
 	    debugRenderer = new Box2DDebugRenderer();
 	   
-		world = new World(new Vector2(0, -4), false);
-		dragon = new Dragon(world, new Vector2(2,2));
-	
-		//head.getSprite().setSize(100, 100);
+		world = new World(new Vector2(0, -1), false);
+		dragon = new Dragon(world, new Vector2(camera.viewportWidth/40, camera.viewportHeight/40));
 
 		//ground
-		BodyDef bodyDef = new BodyDef();
-		bodyDef.type = BodyType.StaticBody;
-
-		//ball
-	/*	CircleShape ballShape = new CircleShape();
-		ballShape.setRadius(1);
-
-		ball = world.createBody(bodyDef);
-		ball.createFixture(ballShape, 1);
-		Sprite headSprite = new HeadSprite();
-		headSprite.setPosition(0, 0);
-		headSprite.setSize(100, 100);
-		ball.setUserData(headSprite);*/
-		
-		
 		EdgeShape groundShape = new EdgeShape();
-		groundShape.set(new Vector2(-25,-5), new Vector2(15,-5));
-
+		groundShape.set(new Vector2(-camera.viewportWidth/35, -camera.viewportHeight/35), new Vector2(camera.viewportWidth/35, -camera.viewportHeight/35));
+		
+		BodyDef bodyDef = new BodyDef();
 		bodyDef.type = BodyType.StaticBody;
 		ground = world.createBody(bodyDef);
 		//ground.setUserData(new TailSprite());
 		ground.createFixture(groundShape, 0);
+
+		Body wall_left = world.createBody(bodyDef);
+		Body wall_right = world.createBody(bodyDef);
+		Body ceiling = world.createBody(bodyDef);
+		
+		groundShape.set(new Vector2(-camera.viewportWidth/35, -camera.viewportHeight/35), new Vector2(-camera.viewportWidth/35, camera.viewportHeight/35));
+		wall_left.createFixture(groundShape, 0);
+		groundShape.set(new Vector2(camera.viewportWidth/35, -camera.viewportHeight/35), new Vector2(camera.viewportWidth/35, camera.viewportHeight/35));
+		wall_right.createFixture(groundShape, 0);
+		groundShape.set(new Vector2(-camera.viewportWidth/35, camera.viewportHeight/35), new Vector2(camera.viewportWidth/35, camera.viewportHeight/35));
+		ceiling.createFixture(groundShape, 0);
 		groundShape.dispose();
 
 		// mouse joint
@@ -107,9 +100,16 @@ public class GameScreen extends AbstractScreen implements InputProcessor {
 	public void resize(int width, int height) {
 		//this.stage.addActor(dragon);
 		//super.resize(width, height);
-		camera.viewportWidth = width/25;
-		camera.viewportHeight = height/25;
+		camera.viewportWidth = width/17;
+		camera.viewportHeight = height/17;
 		camera.update();
+	}
+	
+	public float getRotationAngle(Vector2 to, Vector2 from) {
+
+		//return angle calculation plus angle adjustment to align with tip of the nose
+		//note that deltaY is reversed to properly calculate Y coordinates on the stage
+		return (float) (Math.atan2(to.x - from.x, to.y - from.y) * 180 / Math.PI) + 90;
 	}
 	
 	Vector3 tempVect = new Vector3();
@@ -117,34 +117,36 @@ public class GameScreen extends AbstractScreen implements InputProcessor {
 	public void render(float delta) {
 		
 		super.render(delta);
-		
-		//camera.position.set(head.getBody().getPosition().x, head.getBody().getPosition().y, 0);
-		//camera.update();
-		this.getBatch().setProjectionMatrix(camera.combined);
-
-		
 		world.getBodies(tmpBodies);
-       
-		this.getBatch().begin();
-	    for(Body bod : tmpBodies) {
-
-		    if (bod.getUserData() != null && bod.getUserData() instanceof Sprite) {
-		    	BaseSprite dragonBody = (BaseSprite) bod.getUserData();
-
-		        // Update the entities/sprites position and angle
-		    	dragonBody.setPosition(bod.getPosition().x, bod.getPosition().y);
-		    	
-		        dragonBody.draw(this.getBatch());
-
-		    }
-	    }
-		    
 		
-		//dragon.act(delta);
+		this.getBatch().setProjectionMatrix(camera.combined);
+		this.getBatch().begin();
+		
+		//handle dragon drawing
+		BaseSprite dragonBody = null;
+		
+		for(BodySegment part : dragon.getBodies()) {
+
+			dragonBody = (BaseSprite) part.getBody().getUserData();
+	    	
+	        // Update dragon sprites position and angle
+	    	// NEED to adjust origin between setting position and rotation
+	    	dragonBody.setOrigin(0,0);
+	    	dragonBody.setPosition(part.getBody().getPosition().x, part.getBody().getPosition().y);
+    		dragonBody.setOrigin(dragonBody.getWidthInMeters()/2, dragonBody.getHeightInMeters()/2);
+    		dragonBody.setRotation(MathUtils.radiansToDegrees*part.getBody().getAngle());
+    		
+	    	if(part.hasPrevious()) {
+				dragonBody.setRotation(MathUtils.radiansToDegrees*part.getBody().getAngle());		    	
+	    	}
+	    	
+	        dragonBody.draw(this.getBatch());
+		}
+
 		this.getBatch().end();
 		
-		world.step(1/30f, 8, 3);
-		debugRenderer.render(world, camera.combined);
+		world.step(1/5f, 8, 3);
+		//debugRenderer.render(world, camera.combined);
 
 	}
 	
@@ -184,6 +186,10 @@ public class GameScreen extends AbstractScreen implements InputProcessor {
     Vector2 testPoint2 = new Vector2();
     
     QueryCallback callback = new QueryCallback() {
+    		
+    		float degrees;
+    		Vector2 anchorPoint = new Vector2();
+    		
             @Override 
             public boolean reportFixture (Fixture fixture) {
                     // if the hit point is inside the fixture of the body
@@ -194,15 +200,20 @@ public class GameScreen extends AbstractScreen implements InputProcessor {
                     } 
 
                     if(fixture == dragon.getHead().getFixture()) {
+                  
 	            		camera.unproject(testPoint.set(testPoint.x,testPoint.y,0));
 	            		System.out.println("clicka!");
 	            		jointDef.bodyB = dragon.getHead().getBody();
-	            		//jointDef.target.set(1,1);
-	            		jointDef.target.set(testPoint.x/32, testPoint.y/32);
-	            		//jointDef.target.set(fixture.getBody().getPosition().x, fixture.getBody().getPosition().y +1);
+	            		degrees = Math.abs(MathUtils.radiansToDegrees*jointDef.bodyB.getAngle() % 360);
+	            		System.out.println(degrees);
+	            		if(degrees >= 90) {
+	            			jointDef.target.set(jointDef.bodyB.getWorldCenter().x - fixture.getShape().getRadius(),
+	            				jointDef.bodyB.getWorldCenter().y);	   
+	            		} else {
+	            			jointDef.target.set(jointDef.bodyB.getWorldCenter().x + fixture.getShape().getRadius(),
+		            				jointDef.bodyB.getWorldCenter().y);	  
+	            		}
 	    				joint = (MouseJoint) world.createJoint(jointDef);
-	    				//dragon.getBodies().get(1).setPosition(new Vector2(testPoint.x, testPoint.y));
-	    				//dragon.move(testPoint, ground);
                     }
     				//System.out.println("joint created.");
     				return false;

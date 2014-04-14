@@ -12,7 +12,7 @@ public class Dragon extends Actor {
 	private ArrayList<BodySection> body;
 	private int length;
 	private int sectionWidth;
-	private int coordX;
+	private float coordX;
 	private final float moveSpeed = .5f;
 	private final float rotateSpeed = .01f;
 	
@@ -21,12 +21,12 @@ public class Dragon extends Actor {
 		this.head = new Head(380, 200, this);
 		this.body = new ArrayList<BodySection>();
 		this.length = length;
-		init();
+		//init();
 	}
 
 	private void init() {
 		sectionWidth = ResourceManager.bodyTexture.getRegionWidth();
-		coordX = (int) (head.getX() - (head.getTexture().getRegionWidth()/2)); 
+		coordX = head.getX() - (head.getTexture().getRegionWidth()/2); 
 
 		for(int i = 0; i < length; i++) {
 			body.add(new BodySection(coordX, head.getY(), false));
@@ -45,13 +45,14 @@ public class Dragon extends Actor {
 		//head.addAction(Actions.parallel(Actions.moveTo(x, y, moveSpeed), Actions.rotateTo(calculateRotationAngle(head, x, y), rotateSpeed)));
 		head.move(x, y, moveSpeed, rotateSpeed);
 	//	body.get(0).move(x - head.getOriginX(), y - head.getOriginY(), speed);
+		coordX = head.getX();
 		for(BodySection part : this.body) {
-			if(part.isTail()) {
-				part.move(part.getPrevious().getX(), part.getPrevious().getY(), moveSpeed, rotateSpeed);
-			} else if(part.getPrevious() == null) {
-				part.move(head.getX() - head.getWidth(), head.getY(), moveSpeed, rotateSpeed);
+			if(part.getPrevious() == null) {
+				part.move(head.getX(), head.getY(), moveSpeed, rotateSpeed);
 			} else {
-				part.move(part.getPrevious().getX(), part.getPrevious().getY(), moveSpeed, rotateSpeed);
+				//System.out.println(part.getPrevious().getX());
+				//part.move(part.getPrevious().getX(), part.getPrevious().getY(), moveSpeed/i, rotateSpeed);
+				part.move(part.getPrevious().connectX(), part.getPrevious().connectY(), moveSpeed, rotateSpeed);
 			}
 			i++;
 		}
@@ -63,7 +64,7 @@ public class Dragon extends Actor {
 			System.out.println(i);
 			//first body section will be guided by the head
 			if(i == 0) {
-				body.get(i).setPrevious(this.head);
+				body.get(i).setPrevious(null);
 			} else {
 				body.get(i).setPrevious(body.get(i-1));
 			}

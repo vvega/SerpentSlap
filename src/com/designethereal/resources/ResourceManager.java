@@ -34,8 +34,11 @@ public class ResourceManager {
         //Game
 		atlas = new TextureAtlas(Gdx.files.internal("data/textures/lo/dragon.atlas"));
 		headTexture = atlas.findRegion("head");
+		//headTexture.flip(true, true);
 		bodyTexture = atlas.findRegion("body");
+		bodyTexture.flip(true, true);
 		tailTexture = atlas.findRegion("tail");
+		tailTexture.flip(true, true);
 		headYOffset = headTexture.getRegionHeight() - bodyTexture.getRegionHeight();
 		tailXOffset = tailTexture.getRegionWidth() - bodyTexture.getRegionWidth();
 		tailYOffset = tailTexture.getRegionHeight() - bodyTexture.getRegionHeight();

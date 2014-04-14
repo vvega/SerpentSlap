@@ -2,27 +2,29 @@ package com.designethereal.dragon;
 
 import java.util.ArrayList;
 
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.World;
-import com.badlogic.gdx.physics.box2d.joints.RopeJointDef;
+import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 import com.designethereal.resources.ResourceManager;
 
 public class Dragon {
 
 	Head head;
-	ArrayList<BodyPart> body;
+	ArrayList<BodySegment> body;
 	World world;
 	int length;
 	Vector2 pos;
-	private RopeJointDef jointDef;
+	private RevoluteJointDef jointDef;
+	private boolean initialized = false;
 	
 	public Dragon(World world, Vector2 pos) {
 		this.world = world;
 		this.pos = pos;
-		this.length = 5;
-		this.body = new ArrayList<BodyPart>();
+		this.length = 10;
+		this.body = new ArrayList<BodySegment>();
 		
 		constructBody();
 	}
@@ -52,20 +54,31 @@ public class Dragon {
 	}
 	
 	private void initJointDef() {
-		jointDef = new RopeJointDef();
+		jointDef = new RevoluteJointDef();
 		
-		for(BodyPart p : body) {
+		jointDef.enableMotor = false;
+		jointDef.enableLimit = false;
+		jointDef.maxMotorTorque = 0;
+		jointDef.referenceAngle = MathUtils.degreesToRadians*0;
+		jointDef.lowerAngle = MathUtils.degreesToRadians*0;
+		jointDef.upperAngle = MathUtils.degreesToRadians*360;
+		jointDef.motorSpeed = 0;
+		jointDef.collideConnected = false;
+		
+		for(BodySegment p : body) {
 			if(p.hasNext()) {
+				
 				jointDef.bodyA = p.getBody();
 				jointDef.bodyB = p.getNext().getBody();
-				jointDef.maxLength = 
-						(p.getNext().width > p.width) ? p.width : p.getNext().width;
-				jointDef.collideConnected = false;
-				jointDef.localAnchorA.set(p.width/2,p.height/2);
-				jointDef.localAnchorB.set(p.getNext().width/2,p.getNext().height/2);
 				
-				world.createJoint(jointDef);
+				if(p instanceof Head) {
+					jointDef.localAnchorA.set(p.width - p.width/1.5f,p.height/2);
+				} else {
+					jointDef.localAnchorA.set(p.width - p.width/3,p.height/2);
+				}
 
+				jointDef.localAnchorB.set(0,p.getNext().height/2);				
+				world.createJoint(jointDef);
 			}
 		}
 	}
@@ -78,7 +91,7 @@ public class Dragon {
 		return head;
 	}
 	
-	public ArrayList<BodyPart> getBodies() {
+	public ArrayList<BodySegment> getBodies() {
 		return this.body;
 	}
 	
@@ -88,7 +101,16 @@ public class Dragon {
 	}
 	
 	public void move(Vector3 toPos, Body ground) {
+		//need to apply some type of angle altering velocity
 		
+	}
+	
+	public void setInitialized(boolean init) {
+		this.initialized = init;
+	}
+	
+	public boolean isInitialized() {
+		return this.initialized;
 	}
 
 }

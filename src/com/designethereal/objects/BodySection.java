@@ -12,7 +12,9 @@ public class BodySection extends Actor {
 	private TextureRegion region;
 	private boolean tail;
 	private BodySection next;
-	private Actor previous;
+	private BodySection previous;
+	private float connectX;
+	private float connectY;
 	private Action moveNext;
 	
 	public BodySection(float x, float y, boolean tail){
@@ -34,6 +36,8 @@ public class BodySection extends Actor {
 		this.setRotation(0);
   		this.setX(x);
 		this.setY(y);
+	   	this.connectX = x - this.getWidth()/2;
+	   	this.connectY = y;
 		
 /*		moveNext = new Action() {
 			@Override
@@ -58,18 +62,30 @@ public class BodySection extends Actor {
     }
 	
 	public void move(float x, float y, float m_speed, float r_speed) {
-		this.addAction(Actions.parallel(Actions.moveTo(x, y, m_speed), Actions.rotateTo(Dragon.calculateRotationAngle(this, x, y), r_speed)));
+		float angle = Dragon.calculateRotationAngle(this, x, y);
+		this.addAction(Actions.parallel(Actions.moveTo(x, y, m_speed), Actions.rotateTo(angle, r_speed)));
+		//adjust angle to account for connection point calculation
+		angle += 180;
+		updateConnectionPoints(x, y, angle);
 	}
 	
 	protected void setNext(BodySection next) {
 		this.next = next;
 	}
 	
-	protected void setPrevious(Actor previous) {
+	protected void setPrevious(BodySection previous) {
 		this.previous = previous;
 	}
 	
-	protected Actor getPrevious() {
+	protected float connectX() {
+		return this.connectX;
+	}
+	
+	protected float connectY() {
+		return this.connectY;
+	}
+	
+	protected BodySection getPrevious() {
 		return this.previous;
 	}
 	
@@ -79,5 +95,10 @@ public class BodySection extends Actor {
 	
 	protected boolean isTail() {
 		return this.tail;
+	}
+	
+	private void updateConnectionPoints(float x, float y, float angle) {
+		this.connectX = (float) (x + (this.getWidth()/2 * Math.cos(angle)));
+		this.connectY = (float) (y + (this.getWidth()/2 * Math.sin(angle)));
 	}
 }

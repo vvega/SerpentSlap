@@ -34,6 +34,8 @@ public class ResourceManager {
         //Game
 		atlas = new TextureAtlas(Gdx.files.internal("data/textures/lo/dragon.atlas"));
 		headTexture = atlas.findRegion("head");
+		//headTexture.setRegionHeight(100);
+		//headTexture.setRegionWidth(200);
 		//headTexture.flip(true, true);
 		bodyTexture = atlas.findRegion("body");
 		bodyTexture.flip(true, true);

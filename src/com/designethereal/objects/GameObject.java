@@ -1,4 +1,4 @@
-package com.designethereal.dragon;
+package com.designethereal.objects;
 
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -6,12 +6,10 @@ import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.CircleShape;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.FixtureDef;
-import com.badlogic.gdx.physics.box2d.JointDef;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.Shape;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.physics.box2d.BodyDef.BodyType;
-import com.badlogic.gdx.physics.box2d.joints.RopeJointDef;
 import com.designethereal.sprites.BaseSprite;
 
 public abstract class GameObject {
@@ -20,13 +18,14 @@ public abstract class GameObject {
 	protected Fixture fixture;
 	protected Shape fixtureShape;
 	protected float width;
-	protected float height;
-	
-	private Body body;
-	private FixtureDef fDef;
-	private BodyDef bDef;
+	protected float height;	
+	protected Body body;
+	protected FixtureDef fDef;
+	protected BodyDef bDef;	
+	protected World world;
+
 	private Vector2 position;
-	private World world;
+	private boolean isFlaggedForDeletion = false;
 	private final short GROUP_DRAGON = 0;
 	private final short GROUP_BOMBS = 1;
 	private final short GROUP_SCENERY = 2;
@@ -67,7 +66,7 @@ public abstract class GameObject {
 		return this.bDef;
 	}
 	
-	private void initBDef() {
+	protected void initBDef() {
 		bDef = new BodyDef();
 		bDef.active = true;
 		bDef.fixedRotation = false;
@@ -76,14 +75,14 @@ public abstract class GameObject {
 		bDef.position.set(this.position);
 	}
 	
-	private void initFDef() {
+	protected void initFDef() {
 		fDef = new FixtureDef();
 		fDef.friction = 1;
 		fDef.shape = this.fixtureShape;
 		fDef.filter.groupIndex = GROUP_DRAGON;
 		fDef.friction = .75f;
 		fDef.restitution = .1f;
-		fDef.density = .5f;
+		fDef.density =1f;
 	}
 	
 	private void initFixtureShape() {
@@ -113,6 +112,13 @@ public abstract class GameObject {
 	
 	public Fixture getFixture() {
 		return this.fixture;
+	}	
+	
+	public void setFlaggedForDeletion(boolean set) {
+		this.isFlaggedForDeletion = set;
 	}
 	
+	public boolean isFlaggedForDeletion() {
+		return this.isFlaggedForDeletion;
+	}
 }

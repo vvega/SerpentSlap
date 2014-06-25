@@ -2,109 +2,115 @@ package com.designethereal.objects;
 
 import java.util.ArrayList;
 
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.physics.box2d.Body;
+import com.badlogic.gdx.physics.box2d.World;
+import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef;
 import com.designethereal.resources.ResourceManager;
 
-public class Dragon extends Actor {
+public class Dragon {
 
-	private Head head;
-	private ArrayList<BodySection> body;
-	private int length;
-	private int sectionWidth;
-	private float coordX;
-	private final float moveSpeed = .5f;
-	private final float rotateSpeed = .01f;
+	Head head;
+	ArrayList<BodySegment> body;
+	World world;
+	int length;
+	Vector2 pos;
+	private RevoluteJointDef jointDef;
+	private boolean initialized = false;
 	
-	public Dragon(int length) {
+	public Dragon(World world, Vector2 pos) {
+		this.world = world;
+		this.pos = pos;
+		this.length = 10;
+		this.body = new ArrayList<BodySegment>();
 		
-		this.head = new Head(380, 200, this);
-		this.body = new ArrayList<BodySection>();
-		this.length = length;
-		//init();
+		constructBody();
 	}
-
-	private void init() {
-		sectionWidth = ResourceManager.bodyTexture.getRegionWidth();
-		coordX = head.getX() - (head.getTexture().getRegionWidth()/2); 
-
-		for(int i = 0; i < length; i++) {
-			body.add(new BodySection(coordX, head.getY(), false));
-			coordX -= sectionWidth;
+	
+	private void constructBody() {
+		
+		//init head and body
+		head = new Head(world, pos);
+		float curX = head.getBody().getPosition().x;
+		float curY = head.getBody().getPosition().y;
+		
+		//build body
+		body.add(head);
+		curX -= head.width/1.7;
+		for(int i = 1; i <= length; i++) {
+			body.add(new BodySegment(world, new Vector2(curX, curY)));
+			body.get(i).setPrevious(body.get(i-1));
+			body.get(i-1).setNext(body.get(i));
+			curX -= body.get(i).width;
 		}
+		curX -= ResourceManager.tailXOffset/32;
+		body.add(new Tail(world, new Vector2(curX, curY)));
+		body.get(body.size() - 2).setNext(body.get(body.size() - 1));
 		
-		//tack on tail
-		body.add(new BodySection(coordX, head.getY(), true));
-		
-		stringTogether();
+		//initialize joints
+		initJointDef();
 	}
 	
-	public void move(int x, int y) {
-		y = (int) (this.getStage().getHeight() - y);
-		int i = 1;
-		//head.addAction(Actions.parallel(Actions.moveTo(x, y, moveSpeed), Actions.rotateTo(calculateRotationAngle(head, x, y), rotateSpeed)));
-		head.move(x, y, moveSpeed, rotateSpeed);
-	//	body.get(0).move(x - head.getOriginX(), y - head.getOriginY(), speed);
-		coordX = head.getX();
-		for(BodySection part : this.body) {
-			if(part.getPrevious() == null) {
-				part.move(head.getX(), head.getY(), moveSpeed, rotateSpeed);
-			} else {
-				//System.out.println(part.getPrevious().getX());
-				//part.move(part.getPrevious().getX(), part.getPrevious().getY(), moveSpeed/i, rotateSpeed);
-				part.move(part.getPrevious().connectX(), part.getPrevious().connectY(), moveSpeed, rotateSpeed);
+	private void initJointDef() {
+		jointDef = new RevoluteJointDef();
+		
+		jointDef.enableMotor = false;
+		jointDef.enableLimit = false;
+		jointDef.maxMotorTorque = 0;
+		jointDef.referenceAngle = MathUtils.degreesToRadians*0;
+		jointDef.lowerAngle = MathUtils.degreesToRadians*0;
+		jointDef.upperAngle = MathUtils.degreesToRadians*360;
+		jointDef.motorSpeed = 0;
+		jointDef.collideConnected = false;
+		
+		for(BodySegment p : body) {
+			if(p.hasNext()) {
+				
+				jointDef.bodyA = p.getBody();
+				jointDef.bodyB = p.getNext().getBody();
+				
+				if(p instanceof Head) {
+					jointDef.localAnchorA.set(p.width - p.width/1.5f,p.height/2);
+				} else {
+					jointDef.localAnchorA.set(p.width - p.width/3,p.height/2);
+				}
+
+				jointDef.localAnchorB.set(0,p.getNext().height/2);				
+				world.createJoint(jointDef);
 			}
-			i++;
 		}
 	}
 	
-	public void stringTogether() {
+	public void setPosition(Vector2 pos) {
+		head.setPosition(pos);
+	}
+	
+	public Head getHead() {
+		return head;
+	}
+	
+	public ArrayList<BodySegment> getBodies() {
+		return this.body;
+	}
+	
+	public float calculateAngleToHead(float fromX, float fromY) {
+		return fromY;
+		
+	}
+	
+	public void move(Vector3 toPos, Body ground) {
+		//need to apply some type of angle altering velocity
+		
+	}
+	
+	public void setInitialized(boolean init) {
+		this.initialized = init;
+	}
+	
+	public boolean isInitialized() {
+		return this.initialized;
+	}
 
-		for(int i = 0; i < body.size(); i++) {
-			System.out.println(i);
-			//first body section will be guided by the head
-			if(i == 0) {
-				body.get(i).setPrevious(null);
-			} else {
-				body.get(i).setPrevious(body.get(i-1));
-			}
-		}
-	}
-	
-	public Head getHead(){
-		return this.head;
-	}
-	
-	/*public void grow() {
-		int insertPos = (int) (body.size()/2);
-		float insertXPos = body.get(insertPos).getX() + body.get(insertPos).getWidth();
-		float insertYPos = (body.get(insertPos).getY() + body.get(insertPos + 1).getY())/2;
-		body.add(insertPos, new BodySection(insertXPos, insertYPos, false));
-	}*/
-	
-	protected static float calculateRotationAngle(Actor actor, float toX, float toY) {
-			//return angle calculation plus angle adjustment to align with tip of the nose
-			//note that deltaY is reversed to properly calculate Y coordinates on the stage
-			return (float) (Math.atan2(toX - actor.getX(), actor.getY() - toY) * 180 / Math.PI) - 90;
-	
-	}
-	
-	@Override
-	public void draw(SpriteBatch batch, float delta) {
-		head.draw(batch, delta);
-		for(BodySection part : body) {
-			part.draw(batch, delta);
-		}
-	}
-	
-	@Override
-	public void act(float delta) {
-		super.act(delta);
-		this.head.act(delta);
-		for(BodySection part : this.body) {
-			part.act(delta);
-		}
-	}
-	
 }
-
